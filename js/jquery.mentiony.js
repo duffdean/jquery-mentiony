@@ -36,6 +36,8 @@ var tmpEle = null;
         PERIOD:          190,
     };
 
+	var ISANDROID = /android/i.test(navigator.userAgent);
+
     jQuery.fn.mentiony = function (method, options) {
         var defaults = {
             debug:              0, // Set 1 to see console log message of this plugin
@@ -225,7 +227,18 @@ var tmpEle = null;
             // This event occured from top to down.
             // When press a key: onInputBoxKeyDown --> onInputBoxKeyPress --> onInputBoxInput --> onInputBoxKeyUp
             elmInputBoxContent.bind('keydown', onInputBoxKeyDown);
-            elmInputBoxContent.bind('keypress', onInputBoxKeyPress);
+			
+            //DEAN - We need to handle Android devices differently, as KEYPRESS in Android does not provide keyCode values. https://bugs.chromium.org/p/chromium/issues/detail?id=118639
+			//We have to instead listen to textInput and conver the character to a char
+			if (ISANDROID)
+			{
+				elmInputBoxContent.bind('textInput', onInputBoxAndroidInput);
+			}
+			else
+			{
+				elmInputBoxContent.bind('keypress', onInputBoxKeyPress);
+			}
+			
             elmInputBoxContent.bind('input', onInputBoxInput);
             elmInputBoxContent.bind('keyup', onInputBoxKeyUp);
             elmInputBoxContent.bind('click', onInputBoxClick);
@@ -253,6 +266,25 @@ var tmpEle = null;
                 return handleUserChooseOption(e);
             }
         }
+
+		/**
+		* Character was entered was handled here
+		* This event occur when a printable was pressed. Or combined multi key was handle here, up/down can not read combined key
+		* NOTE: Delete key is not be triggered here
+		* @param e
+		*/
+		function onInputBoxAndroidInput(e)
+		{
+			// log('onInputBoxKeyPress');
+			events.keyPress = true;
+	
+			if (!needMention)
+			{
+				// Try to check if need mention
+				needMention = (e.originalEvent.data.charCodeAt(0) === KEY.AT);
+				// log(needMention, 'needMention', 'info');
+			}
+		}
 
         /**
          * Character was entered was handled here
